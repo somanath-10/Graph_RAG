@@ -1,0 +1,12 @@
+Question:
+{question}
+
+Candidate contexts:
+{contexts}
+
+Return JSON:
+{{
+  "contexts": [
+    {{"chunk_id": "...", "relevance": 0-5, "keep": true/false, "reason": "..."}}
+  ]
+}}

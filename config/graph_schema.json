@@ -1,0 +1,41 @@
+{
+  "allowed_entity_types": [
+    "Patent",
+    "Inventor",
+    "Assignee",
+    "CPCClass",
+    "Claim",
+    "Material",
+    "Component",
+    "Chemical",
+    "ProcessStep",
+    "Condition",
+    "Property",
+    "MeasurementMethod",
+    "Figure",
+    "Application",
+    "EvidenceChunk"
+  ],
+  "allowed_relationship_labels": [
+    "HAS_INVENTOR",
+    "ASSIGNED_TO",
+    "CLASSIFIED_AS",
+    "DISCLOSES",
+    "HAS_COMPONENT",
+    "HAS_MATRIX",
+    "HAS_PHASE",
+    "HAS_PROPERTY",
+    "PREPARED_BY",
+    "USES_INPUT",
+    "PRODUCES",
+    "HAS_CONDITION",
+    "MEASURED_BY",
+    "CLAIMS",
+    "DEPENDS_ON",
+    "SUPPORTS",
+    "SHOWS",
+    "MENTIONS_APPLICATION"
+  ],
+  "default_entity_type": "EvidenceChunk",
+  "default_relationship_label": "SUPPORTS"
+}

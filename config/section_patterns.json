@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Abstract",
+    "pattern": "(?i:\\bAbstract\\b)"
+  },
+  {
+    "name": "Background",
+    "pattern": "(?<!/)\\bBACKGROUND\\b"
+  },
+  {
+    "name": "Summary",
+    "pattern": "(?<!/)\\bSUMMARY\\b"
+  },
+  {
+    "name": "Brief Description of Drawings",
+    "pattern": "\\bBRIEF DESCRIPTION OF THE DRAWINGS\\b"
+  },
+  {
+    "name": "Detailed Description",
+    "pattern": "\\bDETAILED DESCRIPTION\\b"
+  },
+  {
+    "name": "Examples",
+    "pattern": "\\bEXAMPLES\\b"
+  },
+  {
+    "name": "Claims",
+    "pattern": "(?i:\\bClaims\\s+\\d+\\.|\\bWhat is claimed is\\b)"
+  }
+]

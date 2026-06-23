@@ -1,0 +1,31 @@
+Extract entities and relationships from this patent chunk.
+
+Allowed entity types:
+{allowed_entity_types}
+
+Allowed relationship labels:
+{allowed_relationship_labels}
+
+Return JSON with this shape:
+{{
+  "entities": [
+    {{"name": "...", "type": "Material", "properties": {{}}}}
+  ],
+  "relationships": [
+    {{"source": "...", "relation": "HAS_COMPONENT", "target": "...", "evidence": "..."}}
+  ]
+}}
+
+Rules:
+- Keep names short and canonical.
+- Preserve exact units, ranges, values, identifiers, and formula text when present.
+- Distinguish claimed values from measured/example values using entity properties.
+- If no graph-worthy facts exist, return empty arrays.
+
+Chunk metadata:
+chunk_id: {chunk_id}
+page: {page}
+section: {section}
+
+Text:
+{text}
