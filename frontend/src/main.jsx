@@ -95,13 +95,14 @@ function App() {
   async function ask(method) {
     const q = question.trim();
     if (!q) return;
+    if (!document?.document_id) return setStatus('Upload or ingest a patent before asking.');
     setLoading(true);
     setStatus(`Running ${method === 'graph' ? 'GraphRAG' : 'SproutRAG'} retrieval...`);
     try {
       const data = await request(`${API_BASE}/query`, {
         method: 'POST',
         headers: jsonHeaders(),
-        body: JSON.stringify({ question: q, top_k: QUERY_TOP_K, document_id: document?.document_id, method })
+        body: JSON.stringify({ question: q, top_k: QUERY_TOP_K, document_id: document.document_id, method })
       });
       if (method === 'graph') setGraphResult(data);
       else setSproutResult(data);
@@ -117,13 +118,14 @@ function App() {
   async function compareBoth() {
     const q = question.trim();
     if (!q) return;
+    if (!document?.document_id) return setStatus('Upload or ingest a patent before comparing.');
     setLoading(true);
     setStatus('Comparing GraphRAG and SproutRAG...');
     try {
       const data = await request(`${API_BASE}/query/compare`, {
         method: 'POST',
         headers: jsonHeaders(),
-        body: JSON.stringify({ question: q, top_k: QUERY_TOP_K, document_id: document?.document_id })
+        body: JSON.stringify({ question: q, top_k: QUERY_TOP_K, document_id: document.document_id })
       });
       setGraphResult(data.graph_rag);
       setSproutResult(data.sprout_rag);
@@ -177,9 +179,9 @@ function App() {
           <h2>Question</h2>
           <textarea value={question} onChange={e => setQuestion(e.target.value)} placeholder="Ask about claims, embodiments, examples, figures, ranges, or measured values." />
           <div className="buttonRow">
-            <button disabled={loading} onClick={() => ask('graph')}>Ask GraphRAG</button>
-            <button disabled={loading} onClick={() => ask('sprout')}>Ask SproutRAG</button>
-            <button disabled={loading} onClick={compareBoth}>Compare both</button>
+            <button disabled={loading || !document} onClick={() => ask('graph')}>Ask GraphRAG</button>
+            <button disabled={loading || !document} onClick={() => ask('sprout')}>Ask SproutRAG</button>
+            <button disabled={loading || !document} onClick={compareBoth}>Compare both</button>
           </div>
           <ExampleQuestions setQuestion={setQuestion} />
         </section>

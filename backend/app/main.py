@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.comparison.compare_runner import CompareRunner
 from backend.app.config import get_settings
 from backend.app.ingest.pdf_loader import load_pdf_pages
-from backend.app.pipeline import PatentGraphRAGPipeline
+from backend.app.pipeline import PatentAccuracyRAGPipeline
 from backend.app.schemas import (
     CompareRequest,
     CompareResponse,
@@ -98,7 +98,7 @@ def index_document(document_id: str, req: IndexRequest):
     if not path.exists():
         raise HTTPException(status_code=404, detail=f'PDF file not found for document_id={document_id}')
     try:
-        return IngestResponse(**PatentGraphRAGPipeline().index_pdf(str(path), mode=req.mode))
+        return IngestResponse(**PatentAccuracyRAGPipeline().index_pdf(str(path), mode=req.mode))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
@@ -111,7 +111,7 @@ def ingest_sample():
     if not sample.exists():
         raise HTTPException(status_code=404, detail=f'Sample PDF not found at {sample}')
     try:
-        return IngestResponse(**PatentGraphRAGPipeline().index_pdf(str(sample), mode='both'))
+        return IngestResponse(**PatentAccuracyRAGPipeline().index_pdf(str(sample), mode='both'))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -120,7 +120,7 @@ def ingest_sample():
 def query(req: QueryRequest):
     try:
         top_k = bounded_limit(req.top_k, settings.default_query_top_k, settings.max_query_top_k)
-        result = PatentGraphRAGPipeline().answer(
+        result = PatentAccuracyRAGPipeline().answer(
             req.question,
             top_k=top_k,
             document_id=req.document_id,
@@ -206,8 +206,8 @@ def graph_snapshot_from_json(document_id: str | None, limit: int) -> dict | None
         target = str(rel.get('target') or '')
         if not source or not target:
             continue
-        source_id = f'source:{source}'
-        target_id = f'target:{target}'
+        source_id = graph_fallback_node_id(source)
+        target_id = graph_fallback_node_id(target)
         nodes[source_id] = {'id': source_id, 'name': source, 'type': 'Entity'}
         nodes[target_id] = {'id': target_id, 'name': target, 'type': 'Entity'}
         edges.append({
@@ -217,3 +217,8 @@ def graph_snapshot_from_json(document_id: str | None, limit: int) -> dict | None
             'evidence': rel.get('evidence'),
         })
     return {'nodes': list(nodes.values()), 'edges': edges}
+
+
+def graph_fallback_node_id(name: str) -> str:
+    digest = hashlib.sha1(name.strip().lower().encode('utf-8')).hexdigest()[:16]
+    return f'entity:{digest}'

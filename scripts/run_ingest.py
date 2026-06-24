@@ -5,7 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from backend.app.config import get_settings
-from backend.app.pipeline import PatentGraphRAGPipeline
+from backend.app.pipeline import PatentAccuracyRAGPipeline
 
 
 def default_pdf_path() -> Path:
@@ -24,5 +24,5 @@ def default_pdf_path() -> Path:
 
 if __name__ == '__main__':
     pdf = Path(sys.argv[1]) if len(sys.argv) > 1 else default_pdf_path()
-    result = PatentGraphRAGPipeline().ingest_pdf(str(pdf))
+    result = PatentAccuracyRAGPipeline().ingest_pdf(str(pdf))
     print(result)

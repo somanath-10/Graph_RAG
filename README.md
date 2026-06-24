@@ -49,6 +49,12 @@ Edit `.env` and add your key:
 OPENAI_API_KEY=your_key_here
 ```
 
+For local use, change the default Neo4j password before the first run:
+
+```bash
+NEO4J_PASSWORD=choose_a_local_password
+```
+
 Start the complete stack:
 
 ```bash
@@ -66,9 +72,20 @@ Qdrant: http://localhost:6333/dashboard
 
 In the React app, click **Ingest included sample patent**.
 
+Useful Docker commands:
+
+```bash
+docker compose ps
+docker compose logs -f backend
+docker compose down
+docker compose down -v  # also deletes local Qdrant/Neo4j volumes
+```
+
 ## Local development
 
-Start Qdrant and Neo4j:
+Recommended local development uses Docker for Qdrant and Neo4j, and runs FastAPI/Vite directly on your machine.
+
+Start local infrastructure:
 
 ```bash
 docker compose up -d qdrant neo4j
@@ -88,21 +105,30 @@ On macOS/Linux, use `source .venv/bin/activate` instead of the PowerShell activa
 Run backend:
 
 ```bash
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 Install and run frontend:
 
 ```bash
 cd frontend
-npm install
-npm run dev
+npm ci
+VITE_API_URL=http://127.0.0.1:8000/api npm run dev
 ```
 
 Ingest from CLI:
 
 ```bash
 python scripts/run_ingest.py
+```
+
+The same flow is available from `make`:
+
+```bash
+make infra
+make backend
+make frontend
+make smoke
 ```
 
 If Docker/Qdrant/Neo4j are unavailable, you can still run a local mock stack:
@@ -149,7 +175,7 @@ Example query request:
 ```bash
 curl -X POST http://localhost:8000/api/query \
   -H "Content-Type: application/json" \
-  -d '{"question":"Summarize independent claim 1.","method":"graph","top_k":12}'
+  -d '{"document_id":"doc_abc123","question":"Summarize independent claim 1.","method":"graph","top_k":12}'
 ```
 
 Example comparison request:
@@ -157,7 +183,7 @@ Example comparison request:
 ```bash
 curl -X POST http://localhost:8000/api/query/compare \
   -H "Content-Type: application/json" \
-  -d '{"question":"Which examples support claim 1?","top_k":12}'
+  -d '{"document_id":"doc_abc123","question":"Which examples support claim 1?","top_k":12}'
 ```
 
 ## Notes
@@ -166,7 +192,7 @@ curl -X POST http://localhost:8000/api/query/compare \
 - Keep `OPENAI_EMBEDDING_MODEL=text-embedding-3-small` for low-cost embeddings.
 - If you switch to `text-embedding-3-large`, change `EMBEDDING_DIMENSIONS` from `1536` to `3072`.
 - Graph extraction is limited by `MAX_GRAPH_CHUNKS=25` to control cost. Increase it for larger patents.
-- By default, each ingestion rebuilds the Qdrant collection and Neo4j graph. Set `RESET_VECTOR_STORE_ON_INGEST=false` or `RESET_GRAPH_STORE_ON_INGEST=false` to append/update instead.
+- By default, each ingestion replaces vectors and graph nodes for the current document ID. Set `RESET_VECTOR_STORE_ON_INGEST=false` or `RESET_GRAPH_STORE_ON_INGEST=false` to append/update instead.
 
 ## Troubleshooting
 

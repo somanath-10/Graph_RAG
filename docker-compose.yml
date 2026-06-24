@@ -1,13 +1,21 @@
 services:
   qdrant:
     image: qdrant/qdrant:v1.12.4
+    restart: unless-stopped
     ports:
       - "${QDRANT_PORT:-6333}:6333"
     volumes:
       - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "if command -v curl >/dev/null; then curl -fsS http://localhost:6333/healthz; elif command -v wget >/dev/null; then wget -qO- http://localhost:6333/healthz >/dev/null; else echo 'curl or wget is required for qdrant healthcheck' >&2; exit 1; fi"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   neo4j:
     image: neo4j:5.26
+    restart: unless-stopped
     ports:
       - "${NEO4J_HTTP_PORT:-7474}:7474"
       - "${NEO4J_BOLT_PORT:-7687}:7687"
@@ -16,11 +24,18 @@ services:
       - NEO4J_PLUGINS=[]
     volumes:
       - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u $${NEO4J_USER:-neo4j} -p $${NEO4J_PASSWORD:-password} 'RETURN 1' >/dev/null"]
+      interval: 10s
+      timeout: 10s
+      retries: 18
+      start_period: 30s
 
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    restart: unless-stopped
     ports:
       - "${BACKEND_PORT:-8000}:${BACKEND_PORT:-8000}"
     env_file:
@@ -30,16 +45,27 @@ services:
       - NEO4J_URI=${BACKEND_NEO4J_URI:-bolt://neo4j:7687}
       - RAW_DIR=${RAW_DIR:-data/raw}
       - PROCESSED_DIR=${PROCESSED_DIR:-data/processed}
+      - INDEX_DIR=${INDEX_DIR:-data/indexes}
+      - DOCUMENT_REGISTRY_PATH=${DOCUMENT_REGISTRY_PATH:-data/processed/documents.json}
     volumes:
       - ./data:/app/data
     depends_on:
-      - qdrant
-      - neo4j
+      qdrant:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/api/health' % os.getenv('BACKEND_PORT', '8000'), timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-5173}:${VITE_DEV_SERVER_PORT:-5173}"
     environment:
@@ -58,7 +84,14 @@ services:
       - VITE_FACT_PREVIEW_CHARS=${VITE_FACT_PREVIEW_CHARS:-220}
       - VITE_MINIGRAPH_EDGE_LIMIT=${VITE_MINIGRAPH_EDGE_LIMIT:-12}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:' + (process.env.VITE_DEV_SERVER_PORT || '5173')).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
 volumes:
   qdrant_data:

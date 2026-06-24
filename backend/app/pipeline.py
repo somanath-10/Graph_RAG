@@ -21,7 +21,7 @@ from backend.app.storage.neo4j_store import Neo4jStore
 from backend.app.storage.qdrant_store import QdrantStore
 
 
-class PatentGraphRAGPipeline:
+class PatentAccuracyRAGPipeline:
     def __init__(self):
         self.settings = get_settings()
         Path(self.settings.processed_dir).mkdir(parents=True, exist_ok=True)

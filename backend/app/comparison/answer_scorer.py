@@ -8,11 +8,11 @@ def score_answer(result: dict) -> dict:
     channel_score = min(len(channels), 4) / 4
     latency_ms = float(result.get('latency_ms', 0.0) or 0.0)
     score = 0.0
-    score += citation_precision * 35
-    score += evidence_score * 30
+    score += citation_precision * 45
+    score += evidence_score * 15
     score += channel_score * 20
-    score += (0 if result.get('insufficient_evidence') else 10)
-    score -= unsupported * 10
+    score += (0 if result.get('insufficient_evidence') else 15)
+    score -= unsupported * 15
     score -= min(latency_ms / 1000, 10) * 0.5
     return {
         'score': round(max(score, 0.0), 2),
