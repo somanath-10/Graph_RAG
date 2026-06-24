@@ -17,8 +17,11 @@ def normalize_patent_text(text: str, replacements: dict[str, str] | None = None)
     text = text.replace(encoded_minus, '-')
     text = text.replace('\u2212', '-')
     text = re.sub(r'\b([A-Za-z]+[0-9]*)\s+g-1\b', r'\1/g', text)
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    text = re.sub(r'[ \t\f\v]+', ' ', text)
+    text = re.sub(r' *\n *', '\n', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
 
 
 def normalize_pages(pages: list[dict], replacements: dict[str, str] | None = None) -> list[dict]:

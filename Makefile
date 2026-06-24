@@ -1,4 +1,4 @@
-PYTHON ?= python
+PYTHON ?= python3
 BACKEND_HOST ?= 0.0.0.0
 BACKEND_PORT ?= 8000
 FRONTEND_DIR ?= frontend
@@ -13,7 +13,7 @@ backend:
 	$(PYTHON) -m uvicorn backend.app.main:app --host $(BACKEND_HOST) --port $(BACKEND_PORT) --reload
 
 frontend:
-	cd $(FRONTEND_DIR) && npm install && npm run dev
+	cd $(FRONTEND_DIR) && npm ci && npm run dev
 
 ingest:
 	$(PYTHON) scripts/run_ingest.py

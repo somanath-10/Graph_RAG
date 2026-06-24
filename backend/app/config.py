@@ -5,8 +5,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra='ignore')
 
-    app_name: str = 'Patent GraphRAG OpenAI React'
+    app_name: str = 'Patent Accuracy RAG'
     environment: str = 'dev'
+    api_key: str | None = None
+    api_key_header: str = 'X-API-Key'
+    require_api_key: bool = False
 
     openai_api_key: str | None = None
     openai_small_model: str = 'gpt-5.4-mini'
@@ -21,12 +24,15 @@ class Settings(BaseSettings):
     neo4j_user: str = 'neo4j'
     neo4j_password: str = 'password'
 
-    cors_origins: str = 'http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173'
+    cors_origins: str = 'http://localhost:5173,http://localhost:5177,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:5177'
 
     data_dir: str = 'data'
     raw_dir: str = 'data/raw'
     processed_dir: str = 'data/processed'
+    index_dir: str = 'data/indexes'
+    document_registry_path: str = 'data/processed/documents.json'
     sample_pdf_filename: str | None = None
+    max_upload_bytes: int = 50 * 1024 * 1024
 
     section_patterns_path: str = 'config/section_patterns.json'
     normalizer_replacements_path: str = 'config/normalizer_replacements.json'
@@ -37,6 +43,8 @@ class Settings(BaseSettings):
     chunk_overlap_words: int = 60
     min_chunk_words: int = 5
     min_claim_words: int = 8
+    min_paragraph_words: int = 8
+    sentence_split_min_chars: int = 24
     claim_section_name: str = 'Claims'
     body_section_name: str = 'Body'
     chunk_id_width: int = 4
@@ -48,6 +56,12 @@ class Settings(BaseSettings):
     max_query_top_k: int = 50
     default_graph_limit: int = 150
     max_graph_limit: int = 500
+    vector_source_unit_types: str = 'claim,example,paragraph'
+    bm25_top_k_multiplier: int = 3
+    exact_match_limit: int = 12
+    sprout_beam_width: int = 6
+    sprout_tree_candidate_limit: int = 18
+    sprout_store_filename: str = 'sprout_nodes.json'
     max_graph_chunks: int = 25
     max_answer_contexts: int = 8
     min_answer_contexts: int = 2
@@ -74,6 +88,7 @@ class Settings(BaseSettings):
     parse_json_preview_chars: int = 500
     mock_answer_text: str = 'Mock answer. Set USE_MOCK_OPENAI=false and provide OPENAI_API_KEY for real answers.'
     no_evidence_answer: str = 'I do not have enough evidence in the retrieved patent context to answer that exactly.'
+    insufficient_citation_answer: str = 'I do not have enough cited evidence in the retrieved patent context to answer that exactly.'
 
     context_eval_system_prompt_path: str = 'backend/app/prompts/context_eval_system.txt'
     context_eval_user_prompt_path: str = 'backend/app/prompts/context_eval_user.txt'
@@ -87,6 +102,10 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(',') if origin.strip()]
+
+    @property
+    def api_key_required(self) -> bool:
+        return self.require_api_key or self.environment.lower() in {'prod', 'production'}
 
     @property
     def section_pattern_list(self) -> list[tuple[str, str]]:
@@ -152,6 +171,10 @@ class Settings(BaseSettings):
     @property
     def graph_priority_section_list(self) -> list[str]:
         return [section.strip() for section in self.graph_priority_sections.split(',') if section.strip()]
+
+    @property
+    def vector_source_unit_type_list(self) -> list[str]:
+        return [item.strip() for item in self.vector_source_unit_types.split(',') if item.strip()]
 
 
 @lru_cache

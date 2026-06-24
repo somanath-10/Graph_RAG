@@ -8,8 +8,11 @@ def load_pdf_pages(pdf_path: str | Path) -> list[dict]:
         raise FileNotFoundError(f'PDF not found: {path}')
 
     doc = fitz.open(str(path))
-    pages = []
-    for i, page in enumerate(doc, start=1):
-        text = page.get_text('text') or ''
-        pages.append({'page': i, 'text': text})
-    return pages
+    try:
+        pages = []
+        for i, page in enumerate(doc, start=1):
+            text = page.get_text('text') or ''
+            pages.append({'page': i, 'text': text})
+        return pages
+    finally:
+        doc.close()

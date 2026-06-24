@@ -7,7 +7,8 @@ from backend.app.config import get_settings
 
 def clean_type(entity_type: str, allowed_types: set[str], default_type: str) -> str:
     entity_type = re.sub(r'[^A-Za-z0-9]', '', entity_type or '')
-    return entity_type if entity_type in allowed_types else default_type
+    allowed_by_upper = {allowed.upper(): allowed for allowed in allowed_types}
+    return allowed_by_upper.get(entity_type.upper(), default_type)
 
 
 def clean_relation(rel: str, allowed_relations: set[str], default_relation: str) -> str:
@@ -28,9 +29,12 @@ class Neo4jStore:
     def close(self):
         self.driver.close()
 
-    def reset(self):
+    def reset(self, document_id: str | None = None):
         with self.driver.session() as session:
-            session.run('MATCH (n) DETACH DELETE n')
+            if document_id:
+                session.run('MATCH (n {document_id: $document_id}) DETACH DELETE n', document_id=document_id)
+            else:
+                session.run('MATCH (n) DETACH DELETE n')
 
     def upsert_graph(self, graph: dict[str, Any]):
         entities = graph.get('entities', []) or []
@@ -49,11 +53,18 @@ class Neo4jStore:
                 props.update({
                     'name': name,
                     'entity_type': entity_type,
+                    'document_id': e.get('document_id'),
                     'source_chunk_id': e.get('source_chunk_id'),
+                    'source_unit_id': first_or_none(e.get('source_unit_ids')),
                     'page': e.get('page'),
                     'section': e.get('section'),
                 })
-                session.run('MERGE (n:GraphNode {name: $name}) SET n += $props', name=name, props=props)
+                session.run(
+                    'MERGE (n:GraphNode {document_id: $document_id, name: $name}) SET n += $props',
+                    document_id=props.get('document_id') or '',
+                    name=name,
+                    props=props,
+                )
 
             for r in relationships:
                 source = str(r.get('source', '')).strip()
@@ -66,20 +77,22 @@ class Neo4jStore:
                     self.settings.graph_default_relation,
                 )
                 props = {
+                    'document_id': r.get('document_id'),
                     'evidence': r.get('evidence', ''),
                     'source_chunk_id': r.get('source_chunk_id'),
+                    'source_unit_id': first_or_none(r.get('source_unit_ids')),
                     'page': r.get('page'),
                     'section': r.get('section'),
                 }
                 cypher = f'''
-                MERGE (a:GraphNode {{name: $source}})
-                MERGE (b:GraphNode {{name: $target}})
+                MERGE (a:GraphNode {{document_id: $document_id, name: $source}})
+                MERGE (b:GraphNode {{document_id: $document_id, name: $target}})
                 MERGE (a)-[rel:{rel}]->(b)
                 SET rel += $props
                 '''
-                session.run(cypher, source=source, target=target, props=props)
+                session.run(cypher, document_id=props.get('document_id') or '', source=source, target=target, props=props)
 
-    def search_facts(self, terms: list[str], limit: int | None = None) -> list[dict]:
+    def search_facts(self, terms: list[str], limit: int | None = None, document_id: str | None = None) -> list[dict]:
         limit = limit or self.settings.graph_fact_limit
         if not terms:
             return []
@@ -87,31 +100,36 @@ class Neo4jStore:
             result = session.run(
                 '''
                 MATCH (a:GraphNode)-[r]->(b:GraphNode)
-                WHERE any(t IN $terms WHERE toLower(a.name) CONTAINS toLower(t)
+                WHERE ($document_id IS NULL OR r.document_id = $document_id)
+                  AND any(t IN $terms WHERE toLower(a.name) CONTAINS toLower(t)
                    OR toLower(b.name) CONTAINS toLower(t)
                    OR toLower(coalesce(r.evidence, '')) CONTAINS toLower(t))
                 RETURN a.entity_type AS source_type, a.name AS source,
                        type(r) AS relation, b.entity_type AS target_type, b.name AS target,
-                       r.evidence AS evidence, r.page AS page, r.source_chunk_id AS chunk_id
+                       r.document_id AS document_id, r.evidence AS evidence, r.page AS page,
+                       r.section AS section, r.source_chunk_id AS chunk_id, r.source_unit_id AS source_unit_id
                 LIMIT $limit
                 ''',
                 terms=terms,
                 limit=limit,
+                document_id=document_id,
             )
             return [dict(record) for record in result]
 
-    def graph_snapshot(self, limit: int | None = None) -> dict:
+    def graph_snapshot(self, limit: int | None = None, document_id: str | None = None) -> dict:
         limit = limit or self.settings.default_graph_limit
         with self.driver.session() as session:
             result = session.run(
                 '''
                 MATCH (a:GraphNode)-[r]->(b:GraphNode)
+                WHERE $document_id IS NULL OR r.document_id = $document_id
                 RETURN id(a) AS source_id, a.name AS source, a.entity_type AS source_type,
                        id(b) AS target_id, b.name AS target, b.entity_type AS target_type,
                        type(r) AS relation, r.evidence AS evidence
                 LIMIT $limit
                 ''',
                 limit=limit,
+                document_id=document_id,
             )
             nodes = {}
             edges = []
@@ -127,3 +145,9 @@ class Neo4jStore:
                     'evidence': rec['evidence'],
                 })
             return {'nodes': list(nodes.values()), 'edges': edges}
+
+
+def first_or_none(value):
+    if isinstance(value, list) and value:
+        return value[0]
+    return value

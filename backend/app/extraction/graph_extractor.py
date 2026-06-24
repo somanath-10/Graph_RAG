@@ -27,10 +27,14 @@ class GraphExtractor:
         for e in data['entities']:
             e.setdefault('properties', {})
             e['source_chunk_id'] = chunk.get('chunk_id')
+            e['source_unit_ids'] = chunk.get('source_unit_ids', [])
+            e['document_id'] = chunk.get('document_id')
             e['page'] = chunk.get('page_start')
             e['section'] = chunk.get('section')
         for r in data['relationships']:
             r['source_chunk_id'] = chunk.get('chunk_id')
+            r['source_unit_ids'] = chunk.get('source_unit_ids', [])
+            r['document_id'] = chunk.get('document_id')
             r['page'] = chunk.get('page_start')
             r['section'] = chunk.get('section')
         return data

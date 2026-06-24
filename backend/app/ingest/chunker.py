@@ -1,4 +1,5 @@
 import re
+import hashlib
 from pathlib import Path
 
 from backend.app.config import get_settings
@@ -149,5 +150,12 @@ def _make_chunk(
 
 
 def document_id_from_path(path: str | Path) -> str:
-    stem = Path(path).stem
+    path = Path(path)
+    if path.exists() and path.is_file():
+        h = hashlib.sha256()
+        with path.open('rb') as f:
+            for block in iter(lambda: f.read(1024 * 1024), b''):
+                h.update(block)
+        return f'doc_{h.hexdigest()[:16]}'
+    stem = path.stem
     return re.sub(r'[^A-Za-z0-9_\-]+', '_', stem)

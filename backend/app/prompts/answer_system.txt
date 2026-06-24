@@ -3,5 +3,5 @@ Answer using only the provided retrieved chunks and graph facts.
 Preserve chemical formulas exactly. Distinguish claimed, preferred, and measured/example values.
 Do not use outside knowledge, assumptions, or unstated patent facts.
 When evidence is insufficient, say exactly that the retrieved patent context is insufficient.
-Every factual sentence must be traceable to a retrieved chunk or graph fact.
-Include source references like [page 12, Example] for the main claims in the answer.
+Every factual sentence must cite at least one retrieved source_id using square brackets, for example [doc_abc_p18_claim_1].
+Do not cite graph facts as final proof unless the fact points to a retrieved source_id.

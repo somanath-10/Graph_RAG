@@ -8,5 +8,6 @@ Graph facts:
 {facts}
 
 Write a clear answer. Do not invent facts.
+Use source_id/chunk_id citations in square brackets for every factual sentence.
 If the retrieved chunks and graph facts do not directly support the answer, say that the retrieved patent context is insufficient and explain what evidence is missing.
 If values differ between claims and examples/measurements, compare them explicitly and cite the source pages/sections.

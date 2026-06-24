@@ -46,10 +46,12 @@ services:
       - VITE_DEV_SERVER_HOST=${VITE_DEV_SERVER_HOST:-0.0.0.0}
       - VITE_DEV_SERVER_PORT=${VITE_DEV_SERVER_PORT:-5173}
       - VITE_API_URL=${VITE_API_URL:-http://localhost:8000/api}
-      - VITE_APP_TITLE=${VITE_APP_TITLE:-Patent GraphRAG}
-      - VITE_APP_SUBTITLE=${VITE_APP_SUBTITLE:-React + FastAPI + OpenAI small models + Qdrant + Neo4j}
-      - VITE_DEFAULT_QUESTION=${VITE_DEFAULT_QUESTION:-What is the invention disclosed in this patent?}
-      - VITE_EXAMPLE_QUESTIONS=${VITE_EXAMPLE_QUESTIONS:-What is the invention in this patent?||Who are the inventors and assignee?||Summarize independent claim 1.||List the main embodiments or examples.||What measurements, ranges, or conditions are disclosed?}
+      - VITE_API_KEY=${VITE_API_KEY:-}
+      - VITE_API_KEY_HEADER=${VITE_API_KEY_HEADER:-X-API-Key}
+      - VITE_APP_TITLE=${VITE_APP_TITLE:-Patent Accuracy RAG}
+      - VITE_APP_SUBTITLE=${VITE_APP_SUBTITLE:-Evidence GraphRAG vs SproutRAG on the same patent evidence}
+      - VITE_DEFAULT_QUESTION=${VITE_DEFAULT_QUESTION:-Which examples support claim 1?}
+      - VITE_EXAMPLE_QUESTIONS=${VITE_EXAMPLE_QUESTIONS:-What does claim 1 describe?||Which examples support claim 1?||Summarize the invention step by step.||What measurements, ranges, or conditions are disclosed?||What problem does the invention solve?}
       - VITE_QUERY_TOP_K=${VITE_QUERY_TOP_K:-12}
       - VITE_GRAPH_LIMIT=${VITE_GRAPH_LIMIT:-120}
       - VITE_SOURCE_PREVIEW_CHARS=${VITE_SOURCE_PREVIEW_CHARS:-260}

@@ -1,12 +1,13 @@
-# Patent GraphRAG with React + FastAPI + OpenAI Small Models
+# Patent Accuracy RAG with React + FastAPI
 
-This is a complete runnable GraphRAG MVP for patent PDFs.
+This is a runnable patent RAG comparison app. It builds one shared evidence layer from a patent PDF, then compares two retrieval engines:
+
+- Evidence GraphRAG: shared exact/BM25/dense retrieval plus entity/relation evidence graph retrieval
+- SproutRAG: shared exact/BM25/dense retrieval plus a sentence/paragraph/section hierarchy tree
 
 It uses OpenAI for everything model-related:
 
 - `gpt-5.4-mini` for entity extraction
-- `gpt-5.4-mini` for relationship extraction
-- `gpt-5.4-mini` for context evaluation
 - `gpt-5.4-mini` for final answer generation
 - `text-embedding-3-small` for embeddings
 
@@ -14,8 +15,8 @@ Storage/UI/backend:
 
 - React + Vite frontend
 - FastAPI backend
-- Qdrant vector database
-- Neo4j graph database
+- Qdrant vector database, with a local JSON vector fallback for development
+- Neo4j graph database, with saved graph JSON fallback for development
 - PyMuPDF PDF parsing
 
 The project includes a sample patent PDF under `data/raw/`. Sample ingestion uses `SAMPLE_PDF_FILENAME` when set, otherwise it uses the first PDF in `RAW_DIR`.
@@ -26,15 +27,12 @@ The project includes a sample patent PDF under `data/raw/`. Sample ingestion use
 PDF
   -> PyMuPDF parser
   -> chemical formula normalizer
-  -> section-aware chunker
-  -> OpenAI embeddings
-  -> Qdrant vector DB
-  -> OpenAI graph extraction
-  -> Neo4j knowledge graph
-  -> hybrid retrieval
-  -> OpenAI context evaluation
-  -> OpenAI answer generation
-  -> React UI
+  -> section/claim/paragraph/sentence SourceUnits
+  -> shared exact matcher + BM25 + dense vector index
+  -> GraphRAG evidence chunks + OpenAI graph extraction + Neo4j/JSON graph
+  -> SproutRAG hierarchy tree
+  -> grounded answer generation with source_id citation validation
+  -> side-by-side React comparison UI
 ```
 
 ## Quick start with Docker
@@ -107,6 +105,16 @@ Ingest from CLI:
 python scripts/run_ingest.py
 ```
 
+If Docker/Qdrant/Neo4j are unavailable, you can still run a local mock stack:
+
+```bash
+USE_MOCK_OPENAI=true QDRANT_URL=http://127.0.0.1:1 NEO4J_URI=bolt://127.0.0.1:1 \
+  uvicorn backend.app.main:app --host 127.0.0.1 --port 8010
+
+cd frontend
+VITE_API_URL=http://127.0.0.1:8010/api npm run dev -- --port 5177
+```
+
 For a detailed step-by-step explanation of each workflow, see `docs/WORKFLOWS.md`.
 
 ## Dynamic configuration
@@ -128,9 +136,11 @@ Change these files instead of editing Python/React code when you need different 
 
 ```text
 GET  /api/health
-POST /api/documents/ingest-sample
 POST /api/documents/upload
+POST /api/documents/{document_id}/index
+POST /api/documents/ingest-sample
 POST /api/query
+POST /api/query/compare
 GET  /api/graph
 ```
 
@@ -139,7 +149,15 @@ Example query request:
 ```bash
 curl -X POST http://localhost:8000/api/query \
   -H "Content-Type: application/json" \
-  -d '{"question":"Summarize independent claim 1.","top_k":12}'
+  -d '{"question":"Summarize independent claim 1.","method":"graph","top_k":12}'
+```
+
+Example comparison request:
+
+```bash
+curl -X POST http://localhost:8000/api/query/compare \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Which examples support claim 1?","top_k":12}'
 ```
 
 ## Notes
